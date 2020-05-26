@@ -1,0 +1,30 @@
+language: generic
+
+# setting superuser permission for the build
+sudo: required
+
+# install docker/docker-cli
+services:
+    - docker
+
+# everything under this section runs before we run tests or deploy project
+before_install:
+    - docker build -t sharozmirza/client-test -f ./client/Dockerfile.dev ./client
+
+# this section has all the commands to run the test suit
+script:
+    - docker run -e CI=true sharozmirza/client-test npm run test
+
+# build production images
+after_success:
+    - docker build -t sharozmirza/client-prod ./client
+    - docker build -t sharozmirza/nginx-prod ./nginx
+    - docker build -t sharozmirza/server-prod ./server
+    - docker build -t sharozmirza/worker-prod ./worker
+    # Log in to the docker CLI
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+    # Take production images and push them to docker hub
+    - docker push sharozmirza/client-prod
+    - docker push sharozmirza/nginx-prod
+    - docker push sharozmirza/server-prod
+    - docker push sharozmirza/worker-prod
